@@ -5,28 +5,35 @@ import Exceptions.ResourceNotFoundException;
 import com.example.myprojectraspi.model.ShadeEntity;
 import com.example.myprojectraspi.repository.ShadeRepository;
 import com.example.myprojectraspi.service.ShadeService;
+import com.pi4j.Pi4J;
+import com.pi4j.io.gpio.digital.DigitalOutput;
+import com.pi4j.io.gpio.digital.DigitalState;
+import com.pi4j.util.Console;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @CrossOrigin("http://localhost:4200")
 public class ShadeController {
-//    private final ShadeService shadeService;
+
+     private final ShadeService shadeService;
+
     private final ShadeRepository shadeRepository;
 
-    public ShadeController(ShadeRepository shadeRepository){
+    public ShadeController(ShadeService shadeService, ShadeRepository shadeRepository){
+        this.shadeService = shadeService;
         this.shadeRepository = shadeRepository;
         }
 
         @GetMapping("/shades/allShades")
         public ResponseEntity<List<ShadeEntity>> getAllShades(){
+
             List<ShadeEntity> allShades = shadeRepository.findAll();
             return new ResponseEntity<>(allShades, HttpStatus.OK);
 
@@ -46,14 +53,42 @@ public class ShadeController {
             response.put("deleted", Boolean.TRUE);
         return ResponseEntity.ok(response);
         }
-        @PostMapping("/shades/allShades/o/{id1}")
-    public ResponseEntity<ShadeEntity> openShade(@PathVariable Long id1) {
+        @PutMapping("/shades/allShades/move/{id1}")
+        public ResponseEntity<ShadeEntity> move(@PathVariable Long id1, @RequestParam Integer value) {
         ShadeEntity shadeEntity = shadeRepository.findById(id1)
-                .orElseThrow(() -> new ResourceNotFoundException("Shade not exist with id : " + id1));
-        ShadeService.shadeOpening();
-        String id = shadeEntity.getId();
-        String name = shadeEntity.getName();
-        Integer addressOpen = shadeEntity.getAddressOpen();
-                return new ResponseEntity<>(shadeEntity, HttpStatus.OK);
+                .orElseThrow(() -> new ResourceNotFoundException(""));
+        shadeEntity.setValue(value);
+            if (shadeEntity.getValue()> shadeEntity.getStatus()){
+                int finalValue = (shadeEntity.getTimeToOpenAndCloseShade()*shadeEntity.getValue())/100;
+                final var console = new Console();
+                var pi4j = Pi4J.newAutoContext();
+                var moveShade = DigitalOutput.newConfigBuilder(pi4j)
+                        .id(shadeEntity.getId())
+                        .name(shadeEntity.getName())
+                        .address(shadeEntity.getAddressClose())
+                        .shutdown(DigitalState.HIGH)
+                        .initial(DigitalState.HIGH)
+                        .provider(shadeEntity.getProvider());
+                var move = pi4j.create(moveShade);
+                move.pulse(finalValue, TimeUnit.SECONDS);
+                shadeEntity.setStatus(shadeEntity.getValue());
+            } else if (shadeEntity.getValue()< shadeEntity.getStatus()){
+                int finalValue = (shadeEntity.getTimeToOpenAndCloseShade()*shadeEntity.getValue())/100;
+                final var console = new Console();
+                var pi4j = Pi4J.newAutoContext();
+                var moveShade = DigitalOutput.newConfigBuilder(pi4j)
+                        .id(shadeEntity.getId())
+                        .name(shadeEntity.getName())
+                        .address(shadeEntity.getAddressOpen())
+                        .shutdown(DigitalState.HIGH)
+                        .initial(DigitalState.HIGH)
+                        .provider(shadeEntity.getProvider());
+                var move = pi4j.create(moveShade);
+                move.pulse(finalValue, TimeUnit.SECONDS);
+                shadeEntity.setStatus(shadeEntity.getValue());
+            }
+        return ResponseEntity.ok(shadeEntity);
         }
+
+
 }

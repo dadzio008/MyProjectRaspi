@@ -38,6 +38,13 @@
             <artifactId>pi4j-core</artifactId>
             <version>${pi4j.version}</version>
         </dependency>
+        <dependency>
+
+        <groupId>org.springframework.boot</groupId>
+
+        <artifactId>spring-boot-starter-webflux</artifactId>
+
+    </dependency>
 
         <!-- include Pi4J Plugins (Platforms and I/O Providers) -->
         <dependency>

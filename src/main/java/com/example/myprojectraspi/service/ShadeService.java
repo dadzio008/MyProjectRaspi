@@ -3,11 +3,13 @@ package com.example.myprojectraspi.service;
 import com.example.myprojectraspi.model.ShadeEntity;
 import com.example.myprojectraspi.repository.ShadeRepository;
 import com.pi4j.Pi4J;
+import com.pi4j.io.gpio.digital.Digital;
 import com.pi4j.io.gpio.digital.DigitalOutput;
 import com.pi4j.io.gpio.digital.DigitalState;
 import com.pi4j.util.Console;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import javax.transaction.Transactional;
 import java.util.List;
@@ -23,21 +25,10 @@ public class ShadeService {
     public ShadeService(ShadeRepository shadeRepository){
         this.shadeRepository = shadeRepository;
     }
-    public static void shadeOpening(String id, ) {
-        final var console = new Console();
-        var pi4j = Pi4J.newAutoContext();
+    public static void shadeOpening() {
 
-        var openShadeBedRoom = DigitalOutput.newConfigBuilder(pi4j)
-                this.id = .id()
-                .name("Przełącznik")
-                .address(21)
-                .shutdown(DigitalState.HIGH)
-                .initial(DigitalState.HIGH)
-                .provider("pigpio-digital-output");
-        var shadeOpenBedroom = pi4j.create(openShadeBedRoom);
-        shadeOpenBedroom.high();
-        shadeOpenBedroom.pulse(20, TimeUnit.SECONDS);
     }
+
     public List<ShadeEntity> findAllShades() {
         return shadeRepository.findAll();
     }
@@ -50,4 +41,39 @@ public class ShadeService {
     public void deleteShade(Long id){
         shadeRepository.deleteShadeEntityById(id);
     }
-}
+
+//    public Mono<ShadeEntity> moveShade(ShadeEntity shadeEntity) {
+//        if (shadeEntity.getValue()> shadeEntity.getStatus()){
+//            int finalValue = (shadeEntity.getTimeToOpenAndCloseShade()*shadeEntity.getValue())/100;
+//            final var console = new Console();
+//            var pi4j = Pi4J.newAutoContext();
+//            var moveShade = DigitalOutput.newConfigBuilder(pi4j)
+//                    .id(shadeEntity.getId())
+//                    .name(shadeEntity.getName())
+//                    .address(shadeEntity.getAddressClose())
+//                    .shutdown(DigitalState.HIGH)
+//                    .initial(DigitalState.HIGH)
+//                    .provider(shadeEntity.getProvider());
+//            var move = pi4j.create(moveShade);
+//            move.pulse(finalValue, TimeUnit.SECONDS);
+//            shadeEntity.setStatus(shadeEntity.getValue());
+//        } else if (shadeEntity.getValue()< shadeEntity.getStatus()){
+//            int finalValue = (shadeEntity.getTimeToOpenAndCloseShade()*shadeEntity.getValue())/100;
+//            final var console = new Console();
+//            var pi4j = Pi4J.newAutoContext();
+//            var moveShade = DigitalOutput.newConfigBuilder(pi4j)
+//                    .id(shadeEntity.getId())
+//                    .name(shadeEntity.getName())
+//                    .address(shadeEntity.getAddressOpen())
+//                    .shutdown(DigitalState.HIGH)
+//                    .initial(DigitalState.HIGH)
+//                    .provider(shadeEntity.getProvider());
+//            var move = pi4j.create(moveShade);
+//            move.pulse(finalValue, TimeUnit.SECONDS);
+//            shadeEntity.setStatus(shadeEntity.getValue());
+//        }
+
+
+//        return shadeEntity;
+    }
+
