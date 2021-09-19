@@ -1,6 +1,9 @@
 package com.example.myprojectraspi.model;
 
 
+import com.sun.istack.NotNull;
+import org.hibernate.annotations.ColumnDefault;
+
 import javax.persistence.*;
 
 
@@ -17,8 +20,8 @@ public class ShadeEntity {
     private Integer addressClose;
     private String provider = "pigpio-digital-output";
     private Integer timeToOpenAndCloseShade;
-    private Integer status;
-    private Integer value;
+    private Integer status = 1;
+    private Integer value = 0;
 
     public ShadeEntity() {
 

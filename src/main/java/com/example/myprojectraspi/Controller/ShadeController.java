@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @RestController
-@CrossOrigin("http://localhost:4200")
+@CrossOrigin
 public class ShadeController {
 
      private final ShadeService shadeService;
@@ -58,8 +58,11 @@ public class ShadeController {
         ShadeEntity shadeEntity = shadeRepository.findById(id1)
                 .orElseThrow(() -> new ResourceNotFoundException(""));
         shadeEntity.setValue(value);
-            if (shadeEntity.getValue()> shadeEntity.getStatus()){
-                int finalValue = (shadeEntity.getTimeToOpenAndCloseShade()*shadeEntity.getValue())/100;
+        shadeRepository.save(shadeEntity);
+            int changedValue = (((shadeEntity.getValue() * shadeEntity.getTimeToOpenAndCloseShade())/100));
+
+            if (changedValue > shadeEntity.getStatus()){
+                int finalValue = changedValue - shadeEntity.getStatus();
                 final var console = new Console();
                 var pi4j = Pi4J.newAutoContext();
                 var moveShade = DigitalOutput.newConfigBuilder(pi4j)
@@ -70,10 +73,15 @@ public class ShadeController {
                         .initial(DigitalState.HIGH)
                         .provider(shadeEntity.getProvider());
                 var move = pi4j.create(moveShade);
-                move.pulse(finalValue, TimeUnit.SECONDS);
-                shadeEntity.setStatus(shadeEntity.getValue());
-            } else if (shadeEntity.getValue()< shadeEntity.getStatus()){
-                int finalValue = (shadeEntity.getTimeToOpenAndCloseShade()*shadeEntity.getValue())/100;
+                System.out.println(finalValue);
+                move.pulseLow(finalValue, TimeUnit.SECONDS);
+                shadeEntity.setStatus(changedValue);
+                shadeRepository.save(shadeEntity);
+                pi4j.shutdown();
+            } else if (changedValue< shadeEntity.getStatus()){
+                System.out.println(changedValue);
+                System.out.println(shadeEntity.getStatus());
+                int finalValue = shadeEntity.getStatus()-changedValue;
                 final var console = new Console();
                 var pi4j = Pi4J.newAutoContext();
                 var moveShade = DigitalOutput.newConfigBuilder(pi4j)
@@ -84,9 +92,13 @@ public class ShadeController {
                         .initial(DigitalState.HIGH)
                         .provider(shadeEntity.getProvider());
                 var move = pi4j.create(moveShade);
-                move.pulse(finalValue, TimeUnit.SECONDS);
-                shadeEntity.setStatus(shadeEntity.getValue());
+                System.out.println(finalValue);
+                move.pulseLow(finalValue, TimeUnit.SECONDS);
+                shadeEntity.setStatus(changedValue);
+                shadeRepository.save(shadeEntity);
+                pi4j.shutdown();
             }
+
         return ResponseEntity.ok(shadeEntity);
         }
 
