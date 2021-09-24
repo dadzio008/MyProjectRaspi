@@ -2,18 +2,10 @@ package com.example.myprojectraspi.service;
 
 import com.example.myprojectraspi.model.ShadeEntity;
 import com.example.myprojectraspi.repository.ShadeRepository;
-import com.pi4j.Pi4J;
-import com.pi4j.io.gpio.digital.Digital;
-import com.pi4j.io.gpio.digital.DigitalOutput;
-import com.pi4j.io.gpio.digital.DigitalState;
-import com.pi4j.util.Console;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
-
 import javax.transaction.Transactional;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 
 @Service

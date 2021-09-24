@@ -4,17 +4,13 @@ import com.example.myprojectraspi.PrintInfo;
 import com.example.myprojectraspi.model.ShadeEntity;
 import com.example.myprojectraspi.repository.ShadeRepository;
 import com.pi4j.Pi4J;
-import com.pi4j.io.gpio.digital.DigitalInput;
-import com.pi4j.io.gpio.digital.DigitalInputProvider;
-import com.pi4j.io.gpio.digital.DigitalOutput;
-import com.pi4j.io.gpio.digital.PullResistance;
+import com.pi4j.io.gpio.digital.*;
 import com.pi4j.platform.Platforms;
 import com.pi4j.util.Console;
-import org.apache.catalina.util.ErrorPageSupport;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SunriseChange {
@@ -22,11 +18,12 @@ public class SunriseChange {
 
     private final ShadeRepository shadeRepository;
 
-    public SunriseChange(ShadeRepository shadeRepository){
+    public SunriseChange(ShadeRepository shadeRepository) {
         this.shadeRepository = shadeRepository;
     }
 
-    public void changeInput(ShadeEntity shadeEntity) {
+    @Scheduled(fixedRate = 600)
+    public void changeInput() {
         final var console = new Console();
         var pi4j = Pi4J.newAutoContext();
         Platforms platforms = pi4j.platforms();
@@ -35,7 +32,6 @@ public class SunriseChange {
         console.println();
         platforms.describe().print(System.out);
         console.println();
-        AtomicInteger pressCount = new AtomicInteger();
         PrintInfo.printLoadedPlatforms(console, pi4j);
         PrintInfo.printDefaultPlatform(console, pi4j);
         PrintInfo.printProviders(console, pi4j);
@@ -52,14 +48,79 @@ public class SunriseChange {
 
         var input = digitalInputProvider.create(config);
 
-        List<ShadeEntity> shadeEntityList = shadeRepository.findAll();
-
-
+        input.addListener(e -> {
+            DigitalState state = (e.state());
+            List<ShadeEntity> shadeEntityList = shadeRepository.findAll();
+            for (int i = 1; i < shadeEntityList.size(); i++) {
+                changeOutput(state);
+            }
+            pi4j.shutdown();
+        });
 
 
     }
-    public void changeOutput() {
+
+    public void changeOutput(DigitalState state) {
+        for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+            if (state.equals(DigitalState.LOW)) {
+                if (shadeEntity.getStatus() > 0) {
+                    final var console = new Console();
+                    var pi4j = Pi4J.newAutoContext();
+                    Platforms platforms = pi4j.platforms();
+
+                    console.box("Pi4J PLATFORMS");
+                    console.println();
+                    platforms.describe().print(System.out);
+                    console.println();
+                    com.example.myprojectraspi.PrintInfo.printLoadedPlatforms(console, pi4j);
+                    com.example.myprojectraspi.PrintInfo.printDefaultPlatform(console, pi4j);
+                    com.example.myprojectraspi.PrintInfo.printProviders(console, pi4j);
+
+                    var pinOutputConfig = DigitalOutput.newConfigBuilder(pi4j)
+                            .id(shadeEntity.getId())
+                            .name(shadeEntity.getName())
+                            .address(shadeEntity.getAddressOpen())
+                            .shutdown(DigitalState.HIGH)
+                            .initial(DigitalState.HIGH)
+                            .provider("pigpio-digital-output");
+                    var shadeMove = pi4j.create(pinOutputConfig);
+                    shadeMove.pulseLow(shadeEntity.getStatus(), TimeUnit.SECONDS);
+                    shadeEntity.setStatus(0);
+                }else {
+                    System.out.println("Nothing happened");
+                }
+            }else if (state.equals(DigitalState.HIGH)){
+                if (shadeEntity.getStatus() < shadeEntity.getTimeToOpenAndCloseShade()) {
+                    int timeCloseShade = shadeEntity.getTimeToOpenAndCloseShade() - shadeEntity.getStatus();
+                    final var console = new Console();
+                    var pi4j = Pi4J.newAutoContext();
+                    Platforms platforms = pi4j.platforms();
+
+                    console.box("Pi4J PLATFORMS");
+                    console.println();
+                    platforms.describe().print(System.out);
+                    console.println();
+                    com.example.myprojectraspi.PrintInfo.printLoadedPlatforms(console, pi4j);
+                    com.example.myprojectraspi.PrintInfo.printDefaultPlatform(console, pi4j);
+                    com.example.myprojectraspi.PrintInfo.printProviders(console, pi4j);
+
+                    var pinOutputConfig = DigitalOutput.newConfigBuilder(pi4j)
+                            .id(shadeEntity.getId())
+                            .name(shadeEntity.getName())
+                            .address(shadeEntity.getAddressClose())
+                            .shutdown(DigitalState.HIGH)
+                            .initial(DigitalState.HIGH)
+                            .provider("pigpio-digital-output");
+                    var shadeMove = pi4j.create(pinOutputConfig);
+                    shadeMove.pulseLow(timeCloseShade, TimeUnit.SECONDS);
+                    shadeEntity.setStatus(shadeEntity.getTimeToOpenAndCloseShade());
+                } else {
+                    System.out.println("Nothing happened");
+                }
+            } else {
+                throw new RuntimeException("Something gone wrong");
+            }
+        }
 
     }
-
 }

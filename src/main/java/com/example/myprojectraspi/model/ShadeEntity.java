@@ -1,8 +1,7 @@
 package com.example.myprojectraspi.model;
 
 
-import com.sun.istack.NotNull;
-import org.hibernate.annotations.ColumnDefault;
+
 
 import javax.persistence.*;
 

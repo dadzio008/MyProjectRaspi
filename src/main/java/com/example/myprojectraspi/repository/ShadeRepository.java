@@ -8,8 +8,4 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 @Repository
 public interface ShadeRepository extends JpaRepository<ShadeEntity, Long> {
     void deleteShadeEntityById(Long id);
-    void findId(String id1);
-    void findName(String name);
-    void findAddress(Integer address);
-    void
 }
