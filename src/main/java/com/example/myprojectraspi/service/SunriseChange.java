@@ -1,11 +1,8 @@
 package com.example.myprojectraspi.service;
-
-import com.example.myprojectraspi.PrintInfo;
 import com.example.myprojectraspi.model.ShadeEntity;
 import com.example.myprojectraspi.repository.ShadeRepository;
 import com.pi4j.Pi4J;
 import com.pi4j.io.gpio.digital.*;
-import com.pi4j.platform.Platforms;
 import com.pi4j.util.Console;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -26,15 +23,7 @@ public class SunriseChange {
     public void changeInput() {
         final var console = new Console();
         var pi4j = Pi4J.newAutoContext();
-        Platforms platforms = pi4j.platforms();
 
-        console.box("Pi4J PLATFORMS");
-        console.println();
-        platforms.describe().print(System.out);
-        console.println();
-        PrintInfo.printLoadedPlatforms(console, pi4j);
-        PrintInfo.printDefaultPlatform(console, pi4j);
-        PrintInfo.printProviders(console, pi4j);
 
         var config = DigitalInput.newConfigBuilder(pi4j)
                 .id("input")
@@ -54,7 +43,7 @@ public class SunriseChange {
             for (int i = 1; i < shadeEntityList.size(); i++) {
                 changeOutput(state);
             }
-            pi4j.shutdown();
+
         });
 
 
@@ -64,17 +53,9 @@ public class SunriseChange {
         for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
             if (state.equals(DigitalState.LOW)) {
                 if (shadeEntity.getStatus() > 0) {
-                    final var console = new Console();
-                    var pi4j = Pi4J.newAutoContext();
-                    Platforms platforms = pi4j.platforms();
 
-                    console.box("Pi4J PLATFORMS");
-                    console.println();
-                    platforms.describe().print(System.out);
-                    console.println();
-                    com.example.myprojectraspi.PrintInfo.printLoadedPlatforms(console, pi4j);
-                    com.example.myprojectraspi.PrintInfo.printDefaultPlatform(console, pi4j);
-                    com.example.myprojectraspi.PrintInfo.printProviders(console, pi4j);
+                    var pi4j = Pi4J.newAutoContext();
+
 
                     var pinOutputConfig = DigitalOutput.newConfigBuilder(pi4j)
                             .id(shadeEntity.getId())
@@ -86,23 +67,15 @@ public class SunriseChange {
                     var shadeMove = pi4j.create(pinOutputConfig);
                     shadeMove.pulseLow(shadeEntity.getStatus(), TimeUnit.SECONDS);
                     shadeEntity.setStatus(0);
+                    pi4j.shutdown();
                 }else {
                     System.out.println("Nothing happened");
                 }
             }else if (state.equals(DigitalState.HIGH)){
                 if (shadeEntity.getStatus() < shadeEntity.getTimeToOpenAndCloseShade()) {
                     int timeCloseShade = shadeEntity.getTimeToOpenAndCloseShade() - shadeEntity.getStatus();
-                    final var console = new Console();
                     var pi4j = Pi4J.newAutoContext();
-                    Platforms platforms = pi4j.platforms();
 
-                    console.box("Pi4J PLATFORMS");
-                    console.println();
-                    platforms.describe().print(System.out);
-                    console.println();
-                    com.example.myprojectraspi.PrintInfo.printLoadedPlatforms(console, pi4j);
-                    com.example.myprojectraspi.PrintInfo.printDefaultPlatform(console, pi4j);
-                    com.example.myprojectraspi.PrintInfo.printProviders(console, pi4j);
 
                     var pinOutputConfig = DigitalOutput.newConfigBuilder(pi4j)
                             .id(shadeEntity.getId())
@@ -114,6 +87,7 @@ public class SunriseChange {
                     var shadeMove = pi4j.create(pinOutputConfig);
                     shadeMove.pulseLow(timeCloseShade, TimeUnit.SECONDS);
                     shadeEntity.setStatus(shadeEntity.getTimeToOpenAndCloseShade());
+                    pi4j.shutdown();
                 } else {
                     System.out.println("Nothing happened");
                 }

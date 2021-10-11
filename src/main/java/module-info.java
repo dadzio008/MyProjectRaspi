@@ -13,6 +13,7 @@ module com.example.myprojectraspi {
     requires spring.beans;
     requires spring.boot;
     requires spring.boot.autoconfigure;
+    requires spring.security.config;
 
     uses com.pi4j.extension.Extension;
     uses com.pi4j.provider.Provider;

@@ -5,10 +5,6 @@ import Exceptions.ResourceNotFoundException;
 import com.example.myprojectraspi.model.ShadeEntity;
 import com.example.myprojectraspi.repository.ShadeRepository;
 import com.example.myprojectraspi.service.ShadeService;
-import com.pi4j.Pi4J;
-import com.pi4j.io.gpio.digital.DigitalOutput;
-import com.pi4j.io.gpio.digital.DigitalState;
-import com.pi4j.util.Console;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @CrossOrigin
@@ -54,52 +49,11 @@ public class ShadeController {
         return ResponseEntity.ok(response);
         }
         @PutMapping("/shades/allShades/move/{id1}")
-        public ResponseEntity<ShadeEntity> move(@PathVariable Long id1, @RequestParam Integer value) {
-        ShadeEntity shadeEntity = shadeRepository.findById(id1)
-                .orElseThrow(() -> new ResourceNotFoundException(""));
-        shadeEntity.setValue(value);
-        shadeRepository.save(shadeEntity);
-            int changedValue = (((shadeEntity.getValue() * shadeEntity.getTimeToOpenAndCloseShade())/100));
+        public HttpStatus move(@PathVariable Long id1, @RequestParam Integer value) throws InterruptedException {
+            shadeService.moveShade(id1, value);
 
-            if (changedValue > shadeEntity.getStatus()){
-                int finalValue = changedValue - shadeEntity.getStatus();
-                final var console = new Console();
-                var pi4j = Pi4J.newAutoContext();
-                var moveShade = DigitalOutput.newConfigBuilder(pi4j)
-                        .id(shadeEntity.getId())
-                        .name(shadeEntity.getName())
-                        .address(shadeEntity.getAddressClose())
-                        .shutdown(DigitalState.HIGH)
-                        .initial(DigitalState.HIGH)
-                        .provider(shadeEntity.getProvider());
-                var move = pi4j.create(moveShade);
-                System.out.println(finalValue);
-                move.pulseLow(finalValue, TimeUnit.SECONDS);
-                shadeEntity.setStatus(changedValue);
-                shadeRepository.save(shadeEntity);
-                pi4j.shutdown();
-            } else if (changedValue< shadeEntity.getStatus()){
-                System.out.println(changedValue);
-                System.out.println(shadeEntity.getStatus());
-                int finalValue = shadeEntity.getStatus()-changedValue;
-                final var console = new Console();
-                var pi4j = Pi4J.newAutoContext();
-                var moveShade = DigitalOutput.newConfigBuilder(pi4j)
-                        .id(shadeEntity.getId())
-                        .name(shadeEntity.getName())
-                        .address(shadeEntity.getAddressOpen())
-                        .shutdown(DigitalState.HIGH)
-                        .initial(DigitalState.HIGH)
-                        .provider(shadeEntity.getProvider());
-                var move = pi4j.create(moveShade);
-                System.out.println(finalValue);
-                move.pulseLow(finalValue, TimeUnit.SECONDS);
-                shadeEntity.setStatus(changedValue);
-                shadeRepository.save(shadeEntity);
-                pi4j.shutdown();
-            }
 
-        return ResponseEntity.ok(shadeEntity);
+        return HttpStatus.OK;
         }
 
 
