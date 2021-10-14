@@ -53,7 +53,7 @@ public class ShadeController {
             shadeService.moveShade(id1, value);
 
 
-        return HttpStatus.OK;
+        return HttpStatus.ACCEPTED;
         }
 
 

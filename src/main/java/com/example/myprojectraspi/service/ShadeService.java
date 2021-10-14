@@ -33,10 +33,10 @@ public class ShadeService {
                 .orElseThrow(() -> new ResourceNotFoundException(""));
         shadeEntity.setValue(value);
         shadeRepository.save(shadeEntity);
-        int changedValue = (((shadeEntity.getValue() * shadeEntity.getTimeToOpenAndCloseShade())/100));
+        int changedValueToMilisecons = ((shadeEntity.getValue() * shadeEntity.getTimeToOpenAndCloseShade())*10);
 
-        if (changedValue > shadeEntity.getStatus()){
-            int finalValue = changedValue - shadeEntity.getStatus();
+        if (changedValueToMilisecons > shadeEntity.getStatus()){
+            int finalValue = changedValueToMilisecons - shadeEntity.getStatus();
             var pi4j = Pi4J.newAutoContext();
             var moveShade = DigitalOutput.newConfigBuilder(pi4j)
                     .id(shadeEntity.getId())
@@ -48,13 +48,13 @@ public class ShadeService {
             var move = pi4j.create(moveShade);
             System.out.println(finalValue);
             move.pulseLow(finalValue, TimeUnit.SECONDS);
-            shadeEntity.setStatus(changedValue);
+            shadeEntity.setStatus(changedValueToMilisecons);
             shadeRepository.save(shadeEntity);
             pi4j.shutdown();
-        } else if (changedValue< shadeEntity.getStatus()){
-            System.out.println(changedValue);
+        } else if (changedValueToMilisecons< shadeEntity.getStatus()){
+            System.out.println(changedValueToMilisecons);
             System.out.println(shadeEntity.getStatus());
-            int finalValue = shadeEntity.getStatus()-changedValue;
+            int finalValue = shadeEntity.getStatus()-changedValueToMilisecons;
             final var console = new Console();
             var pi4j = Pi4J.newAutoContext();
             var moveShade = DigitalOutput.newConfigBuilder(pi4j)
@@ -67,7 +67,7 @@ public class ShadeService {
             var move = pi4j.create(moveShade);
             System.out.println(finalValue);
             move.pulseLow(finalValue, TimeUnit.SECONDS);
-            shadeEntity.setStatus(changedValue);
+            shadeEntity.setStatus(changedValueToMilisecons);
             shadeRepository.save(shadeEntity);
             pi4j.shutdown();
         }
