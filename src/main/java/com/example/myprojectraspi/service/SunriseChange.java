@@ -19,6 +19,7 @@ public class SunriseChange {
         this.shadeRepository = shadeRepository;
     }
 
+
     @Scheduled(fixedRate = 600)
     public void changeInput() {
         var sunriseInput = Pi4J.newAutoContext();
@@ -44,6 +45,7 @@ public class SunriseChange {
 
 
         });
+        sunriseInput.shutdown();
 
 
     }
