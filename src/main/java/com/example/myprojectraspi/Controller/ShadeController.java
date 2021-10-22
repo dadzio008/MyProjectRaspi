@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@CrossOrigin
+@CrossOrigin(origins = "http://localhost:4200")
 public class ShadeController {
 
      private final ShadeService shadeService;
@@ -25,6 +25,7 @@ public class ShadeController {
         this.shadeService = shadeService;
         this.shadeRepository = shadeRepository;
         }
+
 
         @GetMapping("/shades/allShades")
         public ResponseEntity<List<ShadeEntity>> getAllShades(){
@@ -48,7 +49,7 @@ public class ShadeController {
             response.put("deleted", Boolean.TRUE);
         return ResponseEntity.ok(response);
         }
-        @PutMapping("/shades/allShades/move/{id1}")
+        @PostMapping("/shades/allShades/move/{id1}")
         public HttpStatus move(@PathVariable Long id1, @RequestParam Integer value) throws InterruptedException {
             shadeService.moveShade(id1, value);
 

@@ -1,21 +1,18 @@
 package com.example.myprojectraspi;
 
 
-import com.pi4j.Pi4J;
-import com.pi4j.util.Console;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
-public class MyProjectRaspiApplication extends SpringBootServletInitializer {
+
+public class MyProjectRaspiApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(MyProjectRaspiApplication.class, args);
-        final var console = new Console();
-        var pi4j = Pi4J.newAutoContext();
+
     }
 
 

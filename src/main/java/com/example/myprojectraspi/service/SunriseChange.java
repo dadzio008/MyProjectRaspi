@@ -21,11 +21,10 @@ public class SunriseChange {
 
     @Scheduled(fixedRate = 600)
     public void changeInput() {
-        final var console = new Console();
-        var pi4j = Pi4J.newAutoContext();
+        var sunriseInput = Pi4J.newAutoContext();
 
 
-        var config = DigitalInput.newConfigBuilder(pi4j)
+        var config = DigitalInput.newConfigBuilder(sunriseInput)
                 .id("input")
                 .name("input")
                 .address(22)
@@ -33,16 +32,16 @@ public class SunriseChange {
                 .build();
 
 
-        DigitalInputProvider digitalInputProvider = pi4j.provider("pigpio-digital-input");
+        DigitalInputProvider digitalInputProvider = sunriseInput.provider("pigpio-digital-input");
 
         var input = digitalInputProvider.create(config);
 
         input.addListener(e -> {
             DigitalState state = (e.state());
             List<ShadeEntity> shadeEntityList = shadeRepository.findAll();
-            for (int i = 1; i < shadeEntityList.size(); i++) {
-                changeOutput(state);
-            }
+            System.out.println(shadeEntityList.size());
+            changeOutput(state);
+
 
         });
 
@@ -51,43 +50,44 @@ public class SunriseChange {
 
     public void changeOutput(DigitalState state) {
         for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+            System.out.println(shadeEntity.getId1());
             if (state.equals(DigitalState.LOW)) {
                 if (shadeEntity.getStatus() > 0) {
 
-                    var pi4j = Pi4J.newAutoContext();
+                    var sunriseOutput = Pi4J.newAutoContext();
 
 
-                    var pinOutputConfig = DigitalOutput.newConfigBuilder(pi4j)
+                    var pinOutputConfig = DigitalOutput.newConfigBuilder(sunriseOutput)
                             .id(shadeEntity.getId())
                             .name(shadeEntity.getName())
                             .address(shadeEntity.getAddressOpen())
                             .shutdown(DigitalState.HIGH)
                             .initial(DigitalState.HIGH)
                             .provider("pigpio-digital-output");
-                    var shadeMove = pi4j.create(pinOutputConfig);
-                    shadeMove.pulseLow(shadeEntity.getStatus(), TimeUnit.SECONDS);
+                    var shadeMove = sunriseOutput.create(pinOutputConfig);
+                    shadeMove.pulseLow(shadeEntity.getStatus(), TimeUnit.MILLISECONDS);
                     shadeEntity.setStatus(0);
-                    pi4j.shutdown();
+                    sunriseOutput.shutdown();
                 }else {
                     System.out.println("Nothing happened");
                 }
             }else if (state.equals(DigitalState.HIGH)){
                 if (shadeEntity.getStatus() < shadeEntity.getTimeToOpenAndCloseShade()) {
-                    int timeCloseShade = shadeEntity.getTimeToOpenAndCloseShade() - shadeEntity.getStatus();
-                    var pi4j = Pi4J.newAutoContext();
+                    int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
+                    var sunriseOutput = Pi4J.newAutoContext();
+                    int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
 
-
-                    var pinOutputConfig = DigitalOutput.newConfigBuilder(pi4j)
+                    var pinOutputConfig = DigitalOutput.newConfigBuilder(sunriseOutput)
                             .id(shadeEntity.getId())
                             .name(shadeEntity.getName())
                             .address(shadeEntity.getAddressClose())
                             .shutdown(DigitalState.HIGH)
                             .initial(DigitalState.HIGH)
                             .provider("pigpio-digital-output");
-                    var shadeMove = pi4j.create(pinOutputConfig);
+                    var shadeMove = sunriseOutput.create(pinOutputConfig);
                     shadeMove.pulseLow(timeCloseShade, TimeUnit.SECONDS);
-                    shadeEntity.setStatus(shadeEntity.getTimeToOpenAndCloseShade());
-                    pi4j.shutdown();
+                    shadeEntity.setStatus(setStatus);
+                    sunriseOutput.shutdown();
                 } else {
                     System.out.println("Nothing happened");
                 }
