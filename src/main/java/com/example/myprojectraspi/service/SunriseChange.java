@@ -2,15 +2,18 @@ package com.example.myprojectraspi.service;
 import com.example.myprojectraspi.model.ShadeEntity;
 import com.example.myprojectraspi.repository.ShadeRepository;
 import com.pi4j.Pi4J;
+import com.pi4j.io.IOType;
+import com.pi4j.io.binding.DigitalOutputBinding;
 import com.pi4j.io.gpio.digital.*;
 import com.pi4j.util.Console;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
 public class SunriseChange {
+
+    public static final int DIGITAL_INPUT_PIN=22;
 
 
     private final ShadeRepository shadeRepository;
@@ -20,83 +23,76 @@ public class SunriseChange {
     }
 
 
-    @Scheduled(fixedRate = 600)
+    @Scheduled(fixedRate = 12000)
     public void changeInput() {
+        for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+            int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
+            int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
+        final var console = new Console();
         var sunriseInput = Pi4J.newAutoContext();
 
 
-        var config = DigitalInput.newConfigBuilder(sunriseInput)
-                .id("input")
-                .name("input")
-                .address(22)
-                .pull(PullResistance.PULL_DOWN)
-                .build();
 
 
-        DigitalInputProvider digitalInputProvider = sunriseInput.provider("pigpio-digital-input");
+            System.out.println(shadeEntity.getId1());
 
-        var input = digitalInputProvider.create(config);
 
+
+            var config = DigitalInput.newConfigBuilder(sunriseInput)
+//                    .id("my-digital-input")
+                    .address(DIGITAL_INPUT_PIN)
+                    .pull(PullResistance.PULL_DOWN)
+                    .provider("pigpio-digital-input");
+
+            // get a Digital Input I/O provider from the Pi4J context
+
+
+            var input = sunriseInput.create(config);
+        System.out.println("begin");
         input.addListener(e -> {
             DigitalState state = (e.state());
-            List<ShadeEntity> shadeEntityList = shadeRepository.findAll();
-            System.out.println(shadeEntityList.size());
-            changeOutput(state);
-
-
-        });
-        sunriseInput.shutdown();
-
-
-    }
-
-    public void changeOutput(DigitalState state) {
-        for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
-            System.out.println(shadeEntity.getId1());
-            if (state.equals(DigitalState.LOW)) {
+            Integer count = (Integer) e.source().metadata().get("count").value();
+            console.println(e + " === " + count);
+            if (state == DigitalState.LOW) {
                 if (shadeEntity.getStatus() > 0) {
-
-                    var sunriseOutput = Pi4J.newAutoContext();
-
-
-                    var pinOutputConfig = DigitalOutput.newConfigBuilder(sunriseOutput)
+                    var pinOOutputConfig = DigitalOutput.newConfigBuilder(sunriseInput)
                             .id(shadeEntity.getId())
                             .name(shadeEntity.getName())
                             .address(shadeEntity.getAddressOpen())
                             .shutdown(DigitalState.HIGH)
-                            .initial(DigitalState.HIGH)
-                            .provider("pigpio-digital-output");
-                    var shadeMove = sunriseOutput.create(pinOutputConfig);
-                    shadeMove.pulseLow(shadeEntity.getStatus(), TimeUnit.MILLISECONDS);
+                            .initial(DigitalState.HIGH);
+                    var shadeMoveOpen= sunriseInput.create(pinOOutputConfig);
+                    shadeMoveOpen.pulseLow(timeCloseShade, TimeUnit.MILLISECONDS);
                     shadeEntity.setStatus(0);
-                    sunriseOutput.shutdown();
-                }else {
-                    System.out.println("Nothing happened");
+                } else {
+                    System.err.println("Something gone wrong1");
                 }
-            }else if (state.equals(DigitalState.HIGH)){
-                if (shadeEntity.getStatus() < shadeEntity.getTimeToOpenAndCloseShade()) {
-                    int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
-                    var sunriseOutput = Pi4J.newAutoContext();
-                    int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
-
-                    var pinOutputConfig = DigitalOutput.newConfigBuilder(sunriseOutput)
+            }else if (state == DigitalState.HIGH){
+                if (shadeEntity.getStatus() < timeCloseShade) {
+                    var pinCOutputConfig = DigitalOutput.newConfigBuilder(sunriseInput)
                             .id(shadeEntity.getId())
                             .name(shadeEntity.getName())
                             .address(shadeEntity.getAddressClose())
                             .shutdown(DigitalState.HIGH)
-                            .initial(DigitalState.HIGH)
-                            .provider("pigpio-digital-output");
-                    var shadeMove = sunriseOutput.create(pinOutputConfig);
-                    shadeMove.pulseLow(timeCloseShade, TimeUnit.SECONDS);
+                            .initial(DigitalState.HIGH);
+                    var shadeMoveClose = sunriseInput.create(pinCOutputConfig);
+
+                    shadeMoveClose.pulseLow(shadeEntity.getStatus(), TimeUnit.MILLISECONDS);
                     shadeEntity.setStatus(setStatus);
-                    sunriseOutput.shutdown();
                 } else {
-                    System.out.println("Nothing happened");
+                    System.err.println("Something gone wrong2");
                 }
-            } else {
-                throw new RuntimeException("Something gone wrong");
-            }
+        }
+        System.out.println("END");
+
+
+
+            });
+        console.print("THE STARTING DIGITAL INPUT STATE IS [");
+        console.println(input.state() + "]");
+            sunriseInput.shutdown();
         }
 
     }
+
 }
