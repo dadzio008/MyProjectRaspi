@@ -25,16 +25,9 @@ public class SunriseChange {
 
     @Scheduled(fixedRate = 12000)
     public void changeInput() {
-        for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
-            int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
-            int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
+
         final var console = new Console();
         var sunriseInput = Pi4J.newAutoContext();
-
-
-
-
-            System.out.println(shadeEntity.getId1());
 
 
 
@@ -50,48 +43,54 @@ public class SunriseChange {
             var input = sunriseInput.create(config);
         System.out.println("begin");
         input.addListener(e -> {
-            DigitalState state = (e.state());
-            Integer count = (Integer) e.source().metadata().get("count").value();
-            console.println(e + " === " + count);
-            if (state == DigitalState.LOW) {
-                if (shadeEntity.getStatus() > 0) {
-                    var pinOOutputConfig = DigitalOutput.newConfigBuilder(sunriseInput)
-                            .id(shadeEntity.getId())
-                            .name(shadeEntity.getName())
-                            .address(shadeEntity.getAddressOpen())
-                            .shutdown(DigitalState.HIGH)
-                            .initial(DigitalState.HIGH);
-                    var shadeMoveOpen= sunriseInput.create(pinOOutputConfig);
-                    shadeMoveOpen.pulseLow(timeCloseShade, TimeUnit.MILLISECONDS);
-                    shadeEntity.setStatus(0);
-                } else {
-                    System.err.println("Something gone wrong1");
+            for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+                int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
+                int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
+                DigitalState state = (e.state());
+                Integer count = (Integer) e.source().metadata().get("count").value();
+                console.println(e + " === " + count);
+                if (state == DigitalState.LOW) {
+                    System.out.println(e.state() + "open");
+                    if (shadeEntity.getStatus() > 0) {
+                        System.out.println(e.state().toString() + "open1");
+                        var pinOOutputConfig = DigitalOutput.newConfigBuilder(sunriseInput)
+                                .id(shadeEntity.getId())
+                                .name(shadeEntity.getName())
+                                .address(shadeEntity.getAddressOpen())
+                                .shutdown(DigitalState.HIGH)
+                                .initial(DigitalState.HIGH);
+                        var shadeMoveOpen = sunriseInput.create(pinOOutputConfig);
+                        shadeMoveOpen.pulseLow(timeCloseShade, TimeUnit.MILLISECONDS);
+                        shadeEntity.setStatus(0);
+                    } else {
+                        System.err.println("Something gone wrong1");
+                    }
+                } else if (state == DigitalState.HIGH) {
+                    if (shadeEntity.getStatus() < timeCloseShade) {
+                        var pinCOutputConfig = DigitalOutput.newConfigBuilder(sunriseInput)
+                                .id(shadeEntity.getId())
+                                .name(shadeEntity.getName())
+                                .address(shadeEntity.getAddressClose())
+                                .shutdown(DigitalState.HIGH)
+                                .initial(DigitalState.HIGH);
+                        var shadeMoveClose = sunriseInput.create(pinCOutputConfig);
+
+                        shadeMoveClose.pulseLow(shadeEntity.getStatus(), TimeUnit.MILLISECONDS);
+                        shadeEntity.setStatus(setStatus);
+                    } else {
+                        System.err.println("Something gone wrong2");
+                    }
                 }
-            }else if (state == DigitalState.HIGH){
-                if (shadeEntity.getStatus() < timeCloseShade) {
-                    var pinCOutputConfig = DigitalOutput.newConfigBuilder(sunriseInput)
-                            .id(shadeEntity.getId())
-                            .name(shadeEntity.getName())
-                            .address(shadeEntity.getAddressClose())
-                            .shutdown(DigitalState.HIGH)
-                            .initial(DigitalState.HIGH);
-                    var shadeMoveClose = sunriseInput.create(pinCOutputConfig);
-
-                    shadeMoveClose.pulseLow(shadeEntity.getStatus(), TimeUnit.MILLISECONDS);
-                    shadeEntity.setStatus(setStatus);
-                } else {
-                    System.err.println("Something gone wrong2");
-                }
-        }
-        System.out.println("END");
+                System.out.println("END");
 
 
+            }
+        });
 
-            });
-        console.print("THE STARTING DIGITAL INPUT STATE IS [");
+
+                console.print("THE STARTING DIGITAL INPUT STATE IS [");
         console.println(input.state() + "]");
-            sunriseInput.shutdown();
-        }
+        sunriseInput.shutdown();
 
     }
 
