@@ -67,5 +67,47 @@ public class ShadeService {
             pi4j.shutdown();
         }
     }
+
+    public void close() {
+        for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+            int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
+            int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
+            if (shadeEntity.getStatus() > 0) {
+                var sunriseOutput = Pi4J.newAutoContext();
+                var pinCloseOutputConfig = DigitalOutput.newConfigBuilder(sunriseOutput)
+                        .id(shadeEntity.getId())
+                        .name(shadeEntity.getName())
+                        .address(shadeEntity.getAddressClose())
+                        .shutdown(DigitalState.HIGH)
+                        .initial(DigitalState.HIGH)
+                        .provider(shadeEntity.getProvider());
+                var shadeMoveClose = sunriseOutput.create(pinCloseOutputConfig);
+                shadeMoveClose.pulseLow(shadeEntity.getStatus(), TimeUnit.MILLISECONDS);
+                shadeEntity.setStatus(setStatus);
+                sunriseOutput.shutdown();
+            }
+        }
+    }
+
+    public void open() {
+        for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+            int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
+            int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
+            if (shadeEntity.getStatus() > 0) {
+                var sunriseOutput = Pi4J.newAutoContext();
+                var pinOpenOutputConfig = DigitalOutput.newConfigBuilder(sunriseOutput)
+                        .id(shadeEntity.getId())
+                        .name(shadeEntity.getName())
+                        .address(shadeEntity.getAddressOpen())
+                        .shutdown(DigitalState.HIGH)
+                        .initial(DigitalState.HIGH)
+                        .provider(shadeEntity.getProvider());
+                var shadeMoveClose = sunriseOutput.create(pinOpenOutputConfig);
+                shadeMoveClose.pulseLow(timeCloseShade, TimeUnit.MILLISECONDS);
+                shadeEntity.setStatus(0);
+                sunriseOutput.shutdown();
+            }
+        }
+    }
 }
 
