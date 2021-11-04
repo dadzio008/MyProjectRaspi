@@ -49,4 +49,5 @@ module com.example.myprojectraspi {
     opens com.example.myprojectraspi.repository to com.pi4j;
     opens com.example.myprojectraspi.service to com.pi4j;
     opens com.example.myprojectraspi.Controller to com.pi4j;
+    exports com.example.myprojectraspi;
 }
