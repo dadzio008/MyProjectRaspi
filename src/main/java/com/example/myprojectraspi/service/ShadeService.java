@@ -80,7 +80,7 @@ public class ShadeService {
                         .address(shadeEntity.getAddressClose())
                         .shutdown(DigitalState.HIGH)
                         .initial(DigitalState.HIGH)
-                        .provider(shadeEntity.getProvider());
+                        .provider("pigpio-digital-input");
                 var shadeMoveClose = sunriseOutput.create(pinCloseOutputConfig);
                 shadeMoveClose.pulseLow(shadeEntity.getStatus(), TimeUnit.MILLISECONDS);
                 shadeEntity.setStatus(setStatus);
@@ -101,7 +101,7 @@ public class ShadeService {
                         .address(shadeEntity.getAddressOpen())
                         .shutdown(DigitalState.HIGH)
                         .initial(DigitalState.HIGH)
-                        .provider(shadeEntity.getProvider());
+                        .provider("pigpio-digital-input");
                 var shadeMoveClose = sunriseOutput.create(pinOpenOutputConfig);
                 shadeMoveClose.pulseLow(timeCloseShade, TimeUnit.MILLISECONDS);
                 shadeEntity.setStatus(0);
