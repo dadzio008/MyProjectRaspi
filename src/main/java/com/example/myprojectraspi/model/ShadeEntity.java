@@ -18,7 +18,7 @@ public class ShadeEntity {
     private Integer addressOpen;
     private Integer addressClose;
     private String provider = "pigpio-digital-output";
-    private Integer timeToOpenAndCloseShade;
+    private Double timeToOpenAndCloseShade;
     private Integer status = 1;
     private Integer value = 0;
 
@@ -81,7 +81,7 @@ public class ShadeEntity {
         this.provider = provider;
     }
 
-    public ShadeEntity(Long id1, String id, String name, Integer addressOpen, Integer addressClose, String provider, Integer timeToOpenAndCloseShade, Integer status, Integer value) {
+    public ShadeEntity(Long id1, String id, String name, Integer addressOpen, Integer addressClose, String provider, Double timeToOpenAndCloseShade, Integer status, Integer value) {
         this.id1 = id1;
         this.id = id;
         this.name = name;
@@ -101,10 +101,10 @@ public class ShadeEntity {
         return id1;
     }
 
-    public void setTimeToOpenAndCloseShade(Integer timeToOpenAndCloseShade){
+    public void setTimeToOpenAndCloseShade(Double timeToOpenAndCloseShade){
         this.timeToOpenAndCloseShade = timeToOpenAndCloseShade;
     }
-    public Integer getTimeToOpenAndCloseShade(){
+    public Double getTimeToOpenAndCloseShade(){
         return timeToOpenAndCloseShade;
     }
 }

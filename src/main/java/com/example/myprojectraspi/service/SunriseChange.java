@@ -1,100 +1,171 @@
 package com.example.myprojectraspi.service;
+
 import com.example.myprojectraspi.model.ShadeEntity;
 import com.example.myprojectraspi.repository.ShadeRepository;
 import com.pi4j.Pi4J;
 import com.pi4j.io.gpio.digital.*;
 import com.pi4j.util.Console;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-import java.util.List;
+import org.springframework.context.annotation.Configuration;
+
 import java.util.concurrent.TimeUnit;
 
-@Service
+@Configuration
 public class SunriseChange {
 
+    public static final int DIGITAL_INPUT_PIN = 22;
+
+    public static DigitalState digitalStateInput;
 
     private final ShadeRepository shadeRepository;
 
-    public SunriseChange(ShadeRepository shadeRepository) {
+    private final ShadeService shadeService;
+
+    public SunriseChange(ShadeRepository shadeRepository, ShadeService shadeService) {
         this.shadeRepository = shadeRepository;
+        this.shadeService = shadeService;
     }
 
-    @Scheduled(fixedRate = 600)
+
     public void changeInput() {
+
         final var console = new Console();
-        var pi4j = Pi4J.newAutoContext();
+        var inputchange = Pi4J.newAutoContext();
 
 
-        var config = DigitalInput.newConfigBuilder(pi4j)
-                .id("input")
-                .name("input")
-                .address(22)
+        var config = DigitalInput.newConfigBuilder(inputchange)
+                .address(DIGITAL_INPUT_PIN)
                 .pull(PullResistance.PULL_DOWN)
-                .build();
+                .provider("pigpio-digital-input");
 
 
-        DigitalInputProvider digitalInputProvider = pi4j.provider("pigpio-digital-input");
-
-        var input = digitalInputProvider.create(config);
-
+        var input = inputchange.create(config);
         input.addListener(e -> {
-            DigitalState state = (e.state());
-            List<ShadeEntity> shadeEntityList = shadeRepository.findAll();
-            for (int i = 1; i < shadeEntityList.size(); i++) {
-                changeOutput(state);
+            if (e.state() == DigitalState.LOW) {
+                for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+                    int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
+                    int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
+                    if (shadeEntity.getStatus() > 0) {
+                        var pinOpenOutputConfig = DigitalOutput.newConfigBuilder(inputchange)
+                                .id(shadeEntity.getId())
+                                .name(shadeEntity.getName())
+                                .address(shadeEntity.getAddressOpen())
+                                .shutdown(DigitalState.HIGH)
+                                .initial(DigitalState.HIGH)
+                                .provider("pigpio-digital-input");
+                        var shadeMoveClose = inputchange.create(pinOpenOutputConfig);
+                        shadeMoveClose.pulseLow(timeCloseShade, TimeUnit.MILLISECONDS);
+                        shadeEntity.setStatus(0);
+                    }
+                }
+
+            } else {
+                for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+                    int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
+                    int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
+                    if (shadeEntity.getStatus() > 0) {
+
+                        var pinCloseOutputConfig = DigitalOutput.newConfigBuilder(inputchange)
+                                .id(shadeEntity.getId())
+                                .name(shadeEntity.getName())
+                                .address(shadeEntity.getAddressClose())
+                                .shutdown(DigitalState.HIGH)
+                                .initial(DigitalState.HIGH)
+                                .provider("pigpio-digital-input");
+                        var shadeMoveClose = inputchange.create(pinCloseOutputConfig);
+                        shadeMoveClose.pulseLow(shadeEntity.getStatus(), TimeUnit.MILLISECONDS);
+                        shadeEntity.setStatus(setStatus);
+                    }
+                }
+
+//                        System.out.println(input.state() + "closed");
+//                        System.out.println(input.state().toString() + "String");
+//                        System.out.println(e.state().value() + "1");
+//                        System.out.println(e.state() + "2");
+//                for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+//                    int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
+//                    int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
+//                    System.out.println(shadeEntity.getId1());
+//                    System.out.println(shadeEntity.getStatus());
+//                    System.out.println(shadeEntity.getValue());
+//                    System.out.println("-------------");
+//                        for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+//                            int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
+//                            int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
+//
+//                            var sunriseOutput = Pi4J.newAutoContext();
+//                            if (shadeEntity.getStatus() > 0) {
+//                                var pinCOutputConfig = DigitalOutput.newConfigBuilder(sunriseOutput)
+//                                        .id(shadeEntity.getId())
+//                                        .name(shadeEntity.getName())
+//                                        .address(shadeEntity.getAddressClose())
+//                                        .shutdown(DigitalState.HIGH)
+//                                        .initial(DigitalState.HIGH);
+//                                var shadeMoveClose = sunriseOutput.create(pinCOutputConfig);
+//                                shadeMoveClose.pulseLow(shadeEntity.getStatus(), TimeUnit.MILLISECONDS);
+//                                shadeEntity.setStatus(setStatus);
+//                            } else {
+//                                System.err.println("Something gone wrong2");
+//                            }
+//                            sunriseOutput.shutdown();
+//                        }
             }
+
 
         });
 
-
-    }
-
-    public void changeOutput(DigitalState state) {
-        for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
-            if (state.equals(DigitalState.LOW)) {
-                if (shadeEntity.getStatus() > 0) {
-
-                    var pi4j = Pi4J.newAutoContext();
-
-
-                    var pinOutputConfig = DigitalOutput.newConfigBuilder(pi4j)
-                            .id(shadeEntity.getId())
-                            .name(shadeEntity.getName())
-                            .address(shadeEntity.getAddressOpen())
-                            .shutdown(DigitalState.HIGH)
-                            .initial(DigitalState.HIGH)
-                            .provider("pigpio-digital-output");
-                    var shadeMove = pi4j.create(pinOutputConfig);
-                    shadeMove.pulseLow(shadeEntity.getStatus(), TimeUnit.SECONDS);
-                    shadeEntity.setStatus(0);
-                    pi4j.shutdown();
-                }else {
-                    System.out.println("Nothing happened");
-                }
-            }else if (state.equals(DigitalState.HIGH)){
-                if (shadeEntity.getStatus() < shadeEntity.getTimeToOpenAndCloseShade()) {
-                    int timeCloseShade = shadeEntity.getTimeToOpenAndCloseShade() - shadeEntity.getStatus();
-                    var pi4j = Pi4J.newAutoContext();
-
-
-                    var pinOutputConfig = DigitalOutput.newConfigBuilder(pi4j)
-                            .id(shadeEntity.getId())
-                            .name(shadeEntity.getName())
-                            .address(shadeEntity.getAddressClose())
-                            .shutdown(DigitalState.HIGH)
-                            .initial(DigitalState.HIGH)
-                            .provider("pigpio-digital-output");
-                    var shadeMove = pi4j.create(pinOutputConfig);
-                    shadeMove.pulseLow(timeCloseShade, TimeUnit.SECONDS);
-                    shadeEntity.setStatus(shadeEntity.getTimeToOpenAndCloseShade());
-                    pi4j.shutdown();
-                } else {
-                    System.out.println("Nothing happened");
-                }
-            } else {
-                throw new RuntimeException("Something gone wrong");
-            }
-        }
-
+//    public void open() {
+//        var sunriseOutput = Pi4J.newAutoContext();
+//        for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+//            int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
+//            int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
+//            if (shadeEntity.getStatus() > 0) {
+//                var pinOOutputConfig = DigitalOutput.newConfigBuilder(sunriseOutput)
+//                        .id(shadeEntity.getId())
+//                        .name(shadeEntity.getName())
+//                        .address(shadeEntity.getAddressOpen())
+//                        .shutdown(DigitalState.HIGH)
+//                        .initial(DigitalState.HIGH)
+//                        .provider(shadeEntity.getProvider());
+//                DigitalOutputProvider digitalOutputProvider = sunriseOutput.provider(shadeEntity.getProvider());
+//                var shadeMoveOpen = digitalOutputProvider.create(pinOOutputConfig);
+//                shadeMoveOpen.pulseLow(timeCloseShade, TimeUnit.MILLISECONDS);
+//                shadeEntity.setStatus(0);
+//            } else {
+//                System.err.println("Something gone wrong1");
+//            }
+//        }
+//        sunriseOutput.shutdown();
+//    }
+//
+//    public void close() {
+//        var sunriseOutput = Pi4J.newAutoContext();
+//        for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+//
+//            int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
+//            int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
+//            if (shadeEntity.getStatus() > 0) {
+//                var pinCOutputConfig = DigitalOutput.newConfigBuilder(sunriseOutput)
+//                        .id(shadeEntity.getId())
+//                        .name(shadeEntity.getName())
+//                        .address(shadeEntity.getAddressClose())
+//                        .shutdown(DigitalState.HIGH)
+//                        .initial(DigitalState.HIGH)
+//                        .provider(shadeEntity.getProvider());
+//                DigitalOutputProvider digitalOutputProvider = sunriseOutput.provider(shadeEntity.getProvider());
+//                var shadeMoveClose = digitalOutputProvider.create(pinCOutputConfig);
+//                shadeMoveClose.pulseLow(shadeEntity.getStatus(), TimeUnit.MILLISECONDS);
+//                shadeEntity.setStatus(setStatus);
+//            } else {
+//                System.err.println("Something gone wrong2");
+//            }
+//        }
+//        sunriseOutput.shutdown();
+//        System.out.println("END");
+//
+//
+//    }
+        inputchange.shutdown();
     }
 }
+
+

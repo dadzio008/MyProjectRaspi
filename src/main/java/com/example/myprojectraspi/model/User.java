@@ -1,21 +1,41 @@
 package com.example.myprojectraspi.model;
 
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+
+import lombok.*;
+
+import javax.persistence.*;
 import java.util.Date;
 
+
+
 @Entity
+@Table(name = "User")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private String login;
+    private String email;
     private String password;
-    private Long phoneNumber;
+    private String phoneNumber;
     private Date birthDate;
+    private boolean active;
+    private String role;
+
+    public User(Long id, String login, String email, String password, String phoneNumber, Date birthDate, boolean active, String role) {
+        this.id = id;
+        this.login = login;
+        this.email = email;
+        this.password = password;
+        this.phoneNumber = phoneNumber;
+        this.birthDate = birthDate;
+        this.active = active;
+        this.role = role;
+    }
+    public User() {
+
+    }
 
     public Long getId() {
         return id;
@@ -33,6 +53,14 @@ public class User {
         this.login = login;
     }
 
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
     public String getPassword() {
         return password;
     }
@@ -41,11 +69,11 @@ public class User {
         this.password = password;
     }
 
-    public Long getPhoneNumber() {
+    public String getPhoneNumber() {
         return phoneNumber;
     }
 
-    public void setPhoneNumber(Long phoneNumber) {
+    public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
 
@@ -55,5 +83,21 @@ public class User {
 
     public void setBirthDate(Date birthDate) {
         this.birthDate = birthDate;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }
