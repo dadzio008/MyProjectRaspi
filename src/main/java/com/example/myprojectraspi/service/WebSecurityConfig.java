@@ -1,5 +1,6 @@
 package com.example.myprojectraspi.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -10,6 +11,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -20,11 +23,21 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-    private MyUserDetailsService myUserDetailsService;
+    private final MyUserDetailsService myUserDetailsService;
+    private final ObjectMapper objectMapper;
+
+    public WebSecurityConfig(MyUserDetailsService myUserDetailsService, ObjectMapper objectMapper) {
+        this.myUserDetailsService = myUserDetailsService;
+        this.objectMapper = objectMapper;
+    }
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
@@ -54,28 +67,56 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
         http
+                .csrf().disable()
+                .authorizeRequests()
+                .anyRequest().authenticated()
+                .and()
                 .formLogin()
                 .loginPage("/login")
                 .loginProcessingUrl("/perform_login")
+                .usernameParameter("login")
+                .passwordParameter("password")
+                .successHandler(this::loginSuccessHandler)
+                .failureHandler(this::loginFailureHandler)
                 .defaultSuccessUrl("/shades", true)
                 .failureUrl("/login?error=true")
-                .failureHandler(authenticationFailureHandler())
-                .permitAll()
                 .and()
                 .logout()
                 .logoutUrl("/perform_logout")
                 .deleteCookies("JSESSIONID")
-                .logoutSuccessHandler(logoutSuccessHandler())
+                .logoutSuccessHandler(this::logoutSuccessHandler)
+                .invalidateHttpSession(true)
                 .and()
                 .exceptionHandling()
-                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED));
 
     }
 
-    private LogoutSuccessHandler logoutSuccessHandler() {
+    private void loginSuccessHandler(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Authentication authentication) throws IOException {
+
+        response.setStatus(HttpStatus.OK.value());
+        objectMapper.writeValue(response.getWriter(), "Yayy you logged in!");
     }
 
-    private AuthenticationFailureHandler authenticationFailureHandler() {
+    private void loginFailureHandler(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            AuthenticationException e) throws IOException {
+
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        objectMapper.writeValue(response.getWriter(), "Nopity nop!");
+    }
+
+    private void logoutSuccessHandler(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Authentication authentication) throws IOException {
+
+        response.setStatus(HttpStatus.OK.value());
+        objectMapper.writeValue(response.getWriter(), "Bye!");
     }
 
 }

@@ -8,21 +8,11 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin(origins = "http://localhost:4200")
 public class LoginController {
 
-//        private RegistrationService registrationService;
-//
-//        @PostMapping("/login")
-//
-//        public User loginUser(@RequestBody User user)  throws Exception {
-//        String login = user.getLogin();
-//        String password = user.getPassword();
-//        User userObj =null;
-//        if (login != null && password != null) {
-//              userObj  = registrationService.fetchUserByLoginAndPassword(login, password);
-//
-//        }
-//        if (userObj == null) {
-//                throw new Exception("Bad credentials");
-//        }
-//        return userObj;
-//        }
+        private RegistrationService registrationService;
+
+        @PostMapping("/login")
+        @ResponseBody
+        public User loginUser(@RequestBody User user)  throws Exception {
+                ServiceResponse response = userService.login(requestUser);
+                return response;
 }

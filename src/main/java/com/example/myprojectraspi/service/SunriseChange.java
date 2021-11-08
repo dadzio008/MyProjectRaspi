@@ -7,6 +7,8 @@ import com.pi4j.io.gpio.digital.*;
 import com.pi4j.util.Console;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.concurrent.TimeUnit;
+
 @Configuration
 public class SunriseChange {
 
@@ -27,45 +29,53 @@ public class SunriseChange {
     public void changeInput() {
 
         final var console = new Console();
-        var sunriseInput = Pi4J.newAutoContext();
+        var inputchange = Pi4J.newAutoContext();
 
 
-        var config = DigitalInput.newConfigBuilder(sunriseInput)
+        var config = DigitalInput.newConfigBuilder(inputchange)
                 .address(DIGITAL_INPUT_PIN)
                 .pull(PullResistance.PULL_DOWN)
                 .provider("pigpio-digital-input");
 
 
-        var input = sunriseInput.create(config);
+        var input = inputchange.create(config);
         input.addListener(e -> {
             if (e.state() == DigitalState.LOW) {
-                shadeService.open();
-//                        open();
-//                        System.out.println(input.state() + "open");
-//                        System.out.println(input.state().toString() + "String");
-//                        System.out.println(e.state() + "state");
-
-//
-//                            var sunriseOutput = Pi4J.newAutoContext();
-//                            if (shadeEntity.getStatus() > 0) {
-//                                var pinOOutputConfig = DigitalOutput.newConfigBuilder(sunriseOutput)
-//                                        .id(shadeEntity.getId())
-//                                        .name(shadeEntity.getName())
-//                                        .address(shadeEntity.getAddressOpen())
-//                                        .shutdown(DigitalState.HIGH)
-//                                        .initial(DigitalState.HIGH);
-//                                var shadeMoveOpen = sunriseOutput.create(pinOOutputConfig);
-//                                shadeMoveOpen.pulseLow(timeCloseShade, TimeUnit.MILLISECONDS);
-//                                shadeEntity.setStatus(0);
-//
-//
-//                            } else {
-//                                System.err.println("Something gone wrong1");
-//                            }
-//                            sunriseOutput.shutdown();
+                for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+                    int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
+                    int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
+                    if (shadeEntity.getStatus() > 0) {
+                        var pinOpenOutputConfig = DigitalOutput.newConfigBuilder(inputchange)
+                                .id(shadeEntity.getId())
+                                .name(shadeEntity.getName())
+                                .address(shadeEntity.getAddressOpen())
+                                .shutdown(DigitalState.HIGH)
+                                .initial(DigitalState.HIGH)
+                                .provider("pigpio-digital-input");
+                        var shadeMoveClose = inputchange.create(pinOpenOutputConfig);
+                        shadeMoveClose.pulseLow(timeCloseShade, TimeUnit.MILLISECONDS);
+                        shadeEntity.setStatus(0);
+                    }
+                }
 
             } else {
-                shadeService.close();
+                for (ShadeEntity shadeEntity : shadeRepository.findAll()) {
+                    int timeCloseShade = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000) - shadeEntity.getStatus();
+                    int setStatus = (int) (shadeEntity.getTimeToOpenAndCloseShade() * 1000);
+                    if (shadeEntity.getStatus() > 0) {
+
+                        var pinCloseOutputConfig = DigitalOutput.newConfigBuilder(inputchange)
+                                .id(shadeEntity.getId())
+                                .name(shadeEntity.getName())
+                                .address(shadeEntity.getAddressClose())
+                                .shutdown(DigitalState.HIGH)
+                                .initial(DigitalState.HIGH)
+                                .provider("pigpio-digital-input");
+                        var shadeMoveClose = inputchange.create(pinCloseOutputConfig);
+                        shadeMoveClose.pulseLow(shadeEntity.getStatus(), TimeUnit.MILLISECONDS);
+                        shadeEntity.setStatus(setStatus);
+                    }
+                }
 
 //                        System.out.println(input.state() + "closed");
 //                        System.out.println(input.state().toString() + "String");
@@ -154,6 +164,7 @@ public class SunriseChange {
 //
 //
 //    }
+        inputchange.shutdown();
     }
 }
 
