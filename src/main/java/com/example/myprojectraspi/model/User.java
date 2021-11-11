@@ -10,12 +10,11 @@ import java.util.Date;
 
 
 @Entity
-@Table(name = "User")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    private String login;
+    private String username;
     private String email;
     private String password;
     private String phoneNumber;
@@ -23,9 +22,9 @@ public class User {
     private boolean active;
     private String role;
 
-    public User(Long id, String login, String email, String password, String phoneNumber, Date birthDate, boolean active, String role) {
+    public User(Long id, String username, String email, String password, String phoneNumber, Date birthDate, boolean active, String role) {
         this.id = id;
-        this.login = login;
+        this.username = username;
         this.email = email;
         this.password = password;
         this.phoneNumber = phoneNumber;
@@ -45,12 +44,12 @@ public class User {
         this.id = id;
     }
 
-    public String getLogin() {
-        return login;
+    public String getUsername() {
+        return username;
     }
 
-    public void setLogin(String login) {
-        this.login = login;
+    public void setUsername(String login) {
+        this.username = username;
     }
 
     public String getEmail() {
