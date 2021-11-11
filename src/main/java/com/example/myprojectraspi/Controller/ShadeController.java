@@ -26,6 +26,11 @@ public class ShadeController {
         this.shadeRepository = shadeRepository;
         }
 
+        @GetMapping("/")
+        public String home(){
+            return ("<h1>Welcome</h1>");
+        }
+
 
         @GetMapping("/shades/allShades")
         public ResponseEntity<List<ShadeEntity>> getAllShades(){

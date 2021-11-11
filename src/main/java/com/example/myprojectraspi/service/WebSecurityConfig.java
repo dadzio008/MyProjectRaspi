@@ -8,35 +8,37 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
+
 
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-    private final MyUserDetailsService myUserDetailsService;
+
     private final ObjectMapper objectMapper;
 
-    public WebSecurityConfig(MyUserDetailsService myUserDetailsService, ObjectMapper objectMapper) {
-        this.myUserDetailsService = myUserDetailsService;
+    public WebSecurityConfig(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+    }
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return new MyUserDetailsService();
     }
 
     @Bean
@@ -54,7 +56,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider
                 = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(myUserDetailsService);
+        authProvider.setUserDetailsService(userDetailsService());
         authProvider.setPasswordEncoder(bCryptPasswordEncoder());
         return authProvider;
     }
@@ -67,30 +69,42 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
         http
+                .exceptionHandling()
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                .and()
                 .csrf().disable()
                 .authorizeRequests()
+                .antMatchers("/shades/**")
+                .access("hasAnyRole()")
+                .antMatchers( "/login", "/register").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .formLogin()
                 .loginPage("/login")
-                .loginProcessingUrl("/perform_login")
-                .usernameParameter("login")
-                .passwordParameter("password")
-                .successHandler(this::loginSuccessHandler)
-                .failureHandler(this::loginFailureHandler)
-                .defaultSuccessUrl("/shades", true)
-                .failureUrl("/login?error=true")
                 .and()
-                .logout()
-                .logoutUrl("/perform_logout")
-                .deleteCookies("JSESSIONID")
-                .logoutSuccessHandler(this::logoutSuccessHandler)
-                .invalidateHttpSession(true)
+                .cors().configurationSource(corsConfigurationSource())
                 .and()
-                .exceptionHandling()
-                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED));
+                .csrf()
+                .disable()
+                .sessionManagement()
+                .invalidSessionUrl("/main/invalid-session")
+                .maximumSessions(1)
+                .expiredUrl("/main/expired-session");
 
     }
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200"));
+        configuration.setAllowedMethods(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+
 
     private void loginSuccessHandler(
             HttpServletRequest request,
@@ -98,7 +112,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
             Authentication authentication) throws IOException {
 
         response.setStatus(HttpStatus.OK.value());
-        objectMapper.writeValue(response.getWriter(), "Yayy you logged in!");
+        objectMapper.writeValue(response.getWriter(), "Logged u in!");
     }
 
     private void loginFailureHandler(
