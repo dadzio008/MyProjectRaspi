@@ -1,10 +1,8 @@
 package com.example.myprojectraspi.model;
 
-
-
-
 import javax.persistence.*;
 
+//Shades database table
 
 @Entity
 @Table(name = "Shades")

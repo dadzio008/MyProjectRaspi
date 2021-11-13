@@ -3,17 +3,14 @@ package com.example.myprojectraspi.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.web.cors.CorsConfiguration;
@@ -25,22 +22,21 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
 
-
+//WebSecurity configuration
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
 
     private final ObjectMapper objectMapper;
+    private MyUserDetailsService userDetailsService;
 
-    public WebSecurityConfig(ObjectMapper objectMapper) {
+    public WebSecurityConfig(ObjectMapper objectMapper, MyUserDetailsService userDetailsService) {
         this.objectMapper = objectMapper;
-    }
-    @Bean
-    public UserDetailsService userDetailsService() {
-        return new MyUserDetailsService();
+        this.userDetailsService = userDetailsService;
     }
 
+    //not working
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -52,19 +48,17 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         auth.authenticationProvider(authenticationProvider());
     }
 
+    //not working
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider
                 = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService());
-        authProvider.setPasswordEncoder(bCryptPasswordEncoder());
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
 
-    @Bean
-    public BCryptPasswordEncoder bCryptPasswordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+
 
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
@@ -74,13 +68,14 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .and()
                 .csrf().disable()
                 .authorizeRequests()
-                .antMatchers("/shades/**")
-                .access("hasAnyRole()")
+                .antMatchers("/shades/**", "/HomePage")
+                .authenticated()
                 .antMatchers( "/login", "/register").permitAll()
-                .anyRequest().authenticated()
+
                 .and()
                 .formLogin()
                 .loginPage("/login")
+                .permitAll()
                 .and()
                 .cors().configurationSource(corsConfigurationSource())
                 .and()
@@ -92,10 +87,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .expiredUrl("/main/expired-session");
 
     }
+    //Allow connection to Angular (CORS Policy)
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost/:4200"));
         configuration.setAllowedMethods(Arrays.asList("*"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
@@ -105,7 +101,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
 
-
+//testing
     private void loginSuccessHandler(
             HttpServletRequest request,
             HttpServletResponse response,

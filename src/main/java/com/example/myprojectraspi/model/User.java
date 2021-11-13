@@ -3,14 +3,23 @@ package com.example.myprojectraspi.model;
 
 
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import javax.persistence.*;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 
-
-
+//Users database table
+//example from spring in action
+@Data
+@NoArgsConstructor(access = AccessLevel.PRIVATE, force = true)
 @Entity
-public class User {
+
+public class User implements UserDetails {
+    private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
@@ -19,84 +28,39 @@ public class User {
     private String password;
     private String phoneNumber;
     private Date birthDate;
-    private boolean active;
-    private String role;
 
-    public User(Long id, String username, String email, String password, String phoneNumber, Date birthDate, boolean active, String role) {
-        this.id = id;
-        this.username = username;
-        this.email = email;
-        this.password = password;
-        this.phoneNumber = phoneNumber;
-        this.birthDate = birthDate;
-        this.active = active;
-        this.role = role;
-    }
-    public User() {
-
+    public User(String username, String email, String encode, String phoneNumber, Date birthDate) {
     }
 
-    public Long getId() {
-        return id;
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
     }
 
-    public String getUsername() {
-        return username;
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
     }
 
-    public void setUsername(String login) {
-        this.username = username;
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
 
-    public String getEmail() {
-        return email;
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Arrays.asList(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
 
-    public String getPassword() {
-        return password;
-    }
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
 
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
 
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-
-    public Date getBirthDate() {
-        return birthDate;
-    }
-
-    public void setBirthDate(Date birthDate) {
-        this.birthDate = birthDate;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
 }

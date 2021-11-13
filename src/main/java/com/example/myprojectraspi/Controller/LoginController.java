@@ -1,3 +1,5 @@
+//future
+
 //package com.example.myprojectraspi.Controller;
 //
 //import Exceptions.UsernameNotFoundException;
@@ -9,19 +11,16 @@
 //@CrossOrigin(origins = "http://localhost:4200")
 //public class LoginController {
 //
-//        private RegistrationService registrationService;
+//    @Autowired
+//    private AuthService authService;
 //
-//        @GetMapping("/shades")
-//        @ResponseBody
-//        public User loginUser(@RequestBody User user)  throws Exception {
 //
-//        }
 //
 //
 //
 //        @PostMapping("/login")
 //        public User login(@RequestBody  User user) throws UsernameNotFoundException{
-//
+//            return authService.login(loginRequest);
 //
 //        }
 //}

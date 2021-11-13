@@ -7,6 +7,8 @@ import com.pi4j.provider.Providers;
 import com.pi4j.registry.Registry;
 import com.pi4j.util.Console;
 
+
+//Class from Pi4j library to print info about raspberry pi details.
 /**
  * Helper class to output info about the Pi4J {@link Context}.
  * <p>
