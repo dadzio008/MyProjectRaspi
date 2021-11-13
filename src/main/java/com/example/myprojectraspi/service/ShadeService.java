@@ -21,7 +21,7 @@ public class ShadeService {
         this.shadeRepository = shadeRepository;
     }
 
-
+    //moving shade
     public void moveShade(Long id1, Integer value) {
 
         ShadeEntity shadeEntity = shadeRepository.findById(id1)

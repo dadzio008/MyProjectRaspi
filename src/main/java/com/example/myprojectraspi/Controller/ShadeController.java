@@ -31,7 +31,7 @@ public class ShadeController {
             return ("<h1>Welcome</h1>");
         }
 
-
+//getting list of all shades to Angular
         @GetMapping("/shades/allShades")
         public ResponseEntity<List<ShadeEntity>> getAllShades(){
 
@@ -39,12 +39,14 @@ public class ShadeController {
             return new ResponseEntity<>(allShades, HttpStatus.OK);
 
         }
+        //Add new shade to database
         @PostMapping("/shades/allShades")
     public ResponseEntity<ShadeEntity> addShade(@RequestBody ShadeEntity shadeEntity){
         ShadeEntity newEntity = shadeRepository.save(shadeEntity);
         return new ResponseEntity<>(newEntity, HttpStatus.CREATED);
 
         }
+        //deleting shade from database
         @DeleteMapping("/shades/allShades/{id1}")
     public ResponseEntity<Map<String, Boolean>> deleteEntity(@PathVariable Long id1) {
         ShadeEntity shadeEntity = shadeRepository.findById(id1)
@@ -54,6 +56,7 @@ public class ShadeController {
             response.put("deleted", Boolean.TRUE);
         return ResponseEntity.ok(response);
         }
+        //moving shade (calling method move from shadeService)
         @PostMapping("/shades/allShades/move/{id1}")
         public HttpStatus move(@PathVariable Long id1, @RequestParam Integer value) throws InterruptedException {
             shadeService.moveShade(id1, value);
