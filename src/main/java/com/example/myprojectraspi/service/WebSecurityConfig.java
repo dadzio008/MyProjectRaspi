@@ -1,76 +1,136 @@
-//package com.example.myprojectraspi.service;
-//
-//import org.springframework.context.annotation.Bean;
-//import org.springframework.context.annotation.Configuration;
-//import org.springframework.http.HttpMethod;
-//import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-//import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-//import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-//import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-//import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-//import org.springframework.security.config.http.SessionCreationPolicy;
-//import org.springframework.security.core.userdetails.UserDetails;
-//import org.springframework.security.core.userdetails.UserDetailsService;
-//import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-//import org.springframework.web.servlet.config.annotation.CorsRegistry;
-//import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-//import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-//
-//@Configuration
-//@EnableWebSecurity
-//public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
-//    @Bean
-//    public UserDetailsService userDetailsService() {
-//        return new MyUserDetailsService();
-//    }
-//
-//    @Bean
-//    public BCryptPasswordEncoder passwordEncoder() {
-//        return new BCryptPasswordEncoder();
-//    }
-//
-//    @Bean
-//    public DaoAuthenticationProvider authenticationProvider() {
-//        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-//        authenticationProvider.setUserDetailsService(userDetailsService());
-//        authenticationProvider.setPasswordEncoder(passwordEncoder());
-//
-//        return authenticationProvider;
-//    }
-//
-//    @Override
-//    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-//        auth.authenticationProvider(authenticationProvider());
-//    }
-//
-//    @Override
-//    protected void configure(HttpSecurity http) throws Exception {
-//        http.authorizeRequests()
-//                .anyRequest().authenticated()
-//                .and()
-//                .formLogin().permitAll()
-//                .and()
-//                .logout().permitAll();
-//        http.csrf().disable().cors().disable()
-//                .authorizeRequests()
-//                .and()
-//                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-//
-//
-//    }
-//}
-//@Configuration
-//@EnableWebMvc
-//class WebConfig implements WebMvcConfigurer {
-//
-//    @Override
-//    public void addCorsMappings(CorsRegistry corsRegistry) {
-//        corsRegistry.addMapping("/*")
-//                .allowedOrigins("*")
-//                .allowedMethods("*")
-//                .maxAge(3600L)
-//                .allowedHeaders("*")
-//                .exposedHeaders("Authorization")
-//                .allowCredentials(true);
-//    }
-//}
+package com.example.myprojectraspi.service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Arrays;
+
+
+@Configuration
+@EnableWebSecurity
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+
+
+    private final ObjectMapper objectMapper;
+
+    public WebSecurityConfig(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return new MyUserDetailsService();
+    }
+
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth)
+            throws Exception {
+        auth.authenticationProvider(authenticationProvider());
+    }
+
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider
+                = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService());
+        authProvider.setPasswordEncoder(bCryptPasswordEncoder());
+        return authProvider;
+    }
+
+    @Bean
+    public BCryptPasswordEncoder bCryptPasswordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Override
+    protected void configure(final HttpSecurity http) throws Exception {
+        http
+                .exceptionHandling()
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                .and()
+                .csrf().disable()
+                .authorizeRequests()
+                .antMatchers("/shades/**")
+                .access("hasAnyRole()")
+                .antMatchers( "/login", "/register").permitAll()
+                .anyRequest().authenticated()
+                .and()
+                .formLogin()
+                .loginPage("/login")
+                .and()
+                .cors().configurationSource(corsConfigurationSource())
+                .and()
+                .csrf()
+                .disable()
+                .sessionManagement()
+                .invalidSessionUrl("/main/invalid-session")
+                .maximumSessions(1)
+                .expiredUrl("/main/expired-session");
+
+    }
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200"));
+        configuration.setAllowedMethods(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+
+
+    private void loginSuccessHandler(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Authentication authentication) throws IOException {
+
+        response.setStatus(HttpStatus.OK.value());
+        objectMapper.writeValue(response.getWriter(), "Logged u in!");
+    }
+
+    private void loginFailureHandler(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            AuthenticationException e) throws IOException {
+
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        objectMapper.writeValue(response.getWriter(), "Nopity nop!");
+    }
+
+    private void logoutSuccessHandler(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Authentication authentication) throws IOException {
+
+        response.setStatus(HttpStatus.OK.value());
+        objectMapper.writeValue(response.getWriter(), "Bye!");
+    }
+
+}
