@@ -17,9 +17,9 @@ public class MyProjectRaspiApplication {
     public static void main(String[] args) {
            ConfigurableApplicationContext app = SpringApplication.run(MyProjectRaspiApplication.class, args);
 
-//        SunriseChange sunriseChange = (SunriseChange)app.getBean("sunriseChange");
-//
-//        sunriseChange.changeInput();
+        SunriseChange sunriseChange = (SunriseChange)app.getBean("sunriseChange");
+
+        sunriseChange.changeInput();
     }
 
 
