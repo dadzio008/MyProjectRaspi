@@ -7,10 +7,11 @@ import com.example.myprojectraspi.repository.ShadeRepository;
 import com.pi4j.Pi4J;
 import com.pi4j.io.gpio.digital.*;
 import com.pi4j.util.Console;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-@Service
+@Configuration
 public class SunriseChange {
 
     public static final int DIGITAL_INPUT_PIN = 22;
@@ -29,41 +30,48 @@ public class SunriseChange {
         this.sensorRepository = sensorRepository;
     }
 //  Input of sensor and calling move method from shadeService
-    @Scheduled(fixedDelay = 60000)
+
     public void changeInput() {
 
         final var console = new Console();
-        var inputchange = Pi4J.newAutoContext();
 
         Sensor sensor = sensorRepository.findBySensorType("light");
 
 
-        var config = DigitalInput.newConfigBuilder(inputchange)
+        var config = DigitalInput.newConfigBuilder(shadeService.pi4j())
                 .address(sensor.getAddressSensorInput())
                 .pull(PullResistance.PULL_DOWN)
                 .provider("pigpio-digital-input");
 
 
-        var input = inputchange.create(config);
+        var input = shadeService.pi4j().create(config);
         input.addListener(e -> {
-                sensor.setStatus(e.state());
+            DigitalState state = e.state();
+            System.out.println(state);
+                sensor.setStatus(state);
+            System.out.println(state);
+            sensorRepository.save(sensor);
+            for (ShadeEntity shadeEntity: shadeRepository.findAll()) {
+                if (sensor.getStatus() == DigitalState.HIGH) {
+                    if (shadeEntity.getValue() != 100) {
+                        shadeService.moveShade(shadeEntity.getId1(), 100);
+                    }
+
+                } else if (sensor.getStatus() == DigitalState.LOW) {
+                    if (shadeEntity.getValue() != 0) {
+                        shadeService.moveShade(shadeEntity.getId1(), 0);
+                    }
+                }
+
+            }
+            System.out.println(sensor.getStatus());
+                sensorRepository.save(sensor);
+            System.out.println(sensor.getStatus());
                 });
 
 
-        inputchange.shutdown();
-        for (ShadeEntity shadeEntity: shadeRepository.findAll()) {
-            if (sensor.getStatus() == DigitalState.HIGH) {
-                if (shadeEntity.getValue() != 100) {
-                    shadeService.moveShade(shadeEntity.getId1(), 100);
-                }
+        shadeService.pi4j().shutdown();
 
-            } else if (sensor.getStatus() == DigitalState.LOW) {
-                 if (shadeEntity.getValue() != 0) {
-                     shadeService.moveShade(shadeEntity.getId1(), 0);
-                 }
-            }
-
-        }
     }
 }
 
