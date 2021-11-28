@@ -3,10 +3,7 @@ package com.example.myprojectraspi.Controller;
 
 import com.example.myprojectraspi.model.User;
 import com.example.myprojectraspi.repository.UserRepository;
-import com.example.myprojectraspi.security.RegistrationForm;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -34,11 +31,11 @@ public class RegistrationController {
         String tempEmail = user.getEmail();
         String tempLogin = user.getUsername();
         if (tempEmail != null && !"".equals(tempEmail) && tempLogin != null && !"".equals(tempLogin)) {
-            User userByEmail = userRepository.findByEmail(tempEmail);
+            User userByEmail = userRepository.findUserByEmail(tempEmail);
             if (userByEmail != null) {
                 throw new Exception("User with email " + tempEmail + "is already exist");
             }
-            User userByLogin = userRepository.findByUsername(tempLogin);
+            User userByLogin = userRepository.findUserByUsername(tempLogin);
             if (userByLogin != null) {
                 throw new Exception("User with login " + tempLogin + "is already exist");
             }

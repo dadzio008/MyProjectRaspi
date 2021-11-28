@@ -1,18 +1,30 @@
 package com.example.myprojectraspi.service;
 
+import com.example.myprojectraspi.filter.JwtAccessDeniedHandler;
+import com.example.myprojectraspi.filter.JwtAuthenticationEntryPoint;
+import com.example.myprojectraspi.filter.JwtAuthorizationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -22,120 +34,54 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
 
+import static com.example.myprojectraspi.constant.Security.PUBLIC_URLS;
+import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
+
 //WebSecurity configuration
 @Configuration
 @EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+    private JwtAuthorizationFilter jwtAuthorizationFilter;
+    private JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private UserDetailsService userDetailsService;
+    private BCryptPasswordEncoder bCryptPasswordEncoder;
 
-
-    private final ObjectMapper objectMapper;
-    private MyUserDetailsService userDetailsService;
-
-    public WebSecurityConfig(ObjectMapper objectMapper, MyUserDetailsService userDetailsService) {
-        this.objectMapper = objectMapper;
+    @Autowired
+    public WebSecurityConfig(JwtAuthorizationFilter jwtAuthorizationFilter,
+                             JwtAccessDeniedHandler jwtAccessDeniedHandler,
+                             JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+                             @Qualifier("userDetailsService")UserDetailsService userDetailsService,
+                             BCryptPasswordEncoder bCryptPasswordEncoder) {
+        this.jwtAuthorizationFilter = jwtAuthorizationFilter;
+        this.jwtAccessDeniedHandler = jwtAccessDeniedHandler;
+        this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
         this.userDetailsService = userDetailsService;
-    }
-
-    //not working
-    @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
     @Override
-    protected void configure(AuthenticationManagerBuilder auth)
-            throws Exception {
-        auth.authenticationProvider(authenticationProvider());
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.userDetailsService(userDetailsService).passwordEncoder(bCryptPasswordEncoder);
     }
-
-    //not working
-    @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider
-                = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
-    }
-
-
 
     @Override
-    protected void configure(final HttpSecurity http) throws Exception {
-        final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        final CorsConfiguration config = new CorsConfiguration();
-
-        config.addAllowedOrigin("*");
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("GET");
-        config.addAllowedMethod("PUT");
-        config.addAllowedMethod("POST");
-        source.registerCorsConfiguration("/**", config);
-        http
-                .exceptionHandling()
-                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+    protected void configure(HttpSecurity http) throws Exception {
+        http.csrf().disable().cors().and()
+                .sessionManagement().sessionCreationPolicy(STATELESS)
+                .and().authorizeRequests().antMatchers(PUBLIC_URLS).permitAll()
+                .anyRequest().authenticated()
                 .and()
-                .csrf().disable()
-                .authorizeRequests()
-                .antMatchers("/shades/**", "/HomePage")
-                .authenticated()
-                .antMatchers( "/login", "/register").permitAll()
-
+                .exceptionHandling().accessDeniedHandler(jwtAccessDeniedHandler)
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 .and()
-                .formLogin()
-                .loginPage("/login")
-                .permitAll()
-                .and()
-                .cors().configurationSource(corsConfigurationSource())
-                .and()
-                .csrf()
-                .disable()
-                .sessionManagement()
-                .invalidSessionUrl("/main/invalid-session")
-                .maximumSessions(1)
-                .expiredUrl("/main/expired-session");
-
+                .addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
     }
-    //Allow connection to Angular (CORS Policy)
+
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost/:4200"));
-        configuration.setAllowedMethods(Arrays.asList("*"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
     }
-
-
-//testing
-    private void loginSuccessHandler(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            Authentication authentication) throws IOException {
-
-        response.setStatus(HttpStatus.OK.value());
-        objectMapper.writeValue(response.getWriter(), "Logged u in!");
-    }
-
-    private void loginFailureHandler(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            AuthenticationException e) throws IOException {
-
-        response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        objectMapper.writeValue(response.getWriter(), "Nopity nop!");
-    }
-
-    private void logoutSuccessHandler(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            Authentication authentication) throws IOException {
-
-        response.setStatus(HttpStatus.OK.value());
-        objectMapper.writeValue(response.getWriter(), "Bye!");
-    }
-
 }
