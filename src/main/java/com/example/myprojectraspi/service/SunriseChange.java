@@ -38,13 +38,13 @@ public class SunriseChange {
         Sensor sensor = sensorRepository.findBySensorType("light");
 
 
-        var config = DigitalInput.newConfigBuilder(shadeService.pi4j())
+        var config = DigitalInput.newConfigBuilder(shadeService.pi4j)
                 .address(sensor.getAddressSensorInput())
                 .pull(PullResistance.PULL_DOWN)
                 .provider("pigpio-digital-input");
 
 
-        var input = shadeService.pi4j().create(config);
+        var input = shadeService.pi4j.create(config);
         input.addListener(e -> {
             DigitalState state = e.state();
             System.out.println(state);
@@ -70,8 +70,7 @@ public class SunriseChange {
                 });
 
 
-        shadeService.pi4j().shutdown();
-
+        shadeService.pi4j.shutdown();
     }
 }
 

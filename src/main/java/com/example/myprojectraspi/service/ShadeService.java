@@ -20,9 +20,10 @@ public class ShadeService {
     public ShadeService(ShadeRepository shadeRepository) {
         this.shadeRepository = shadeRepository;
     }
-
+    public final static Context pi4j = Pi4J.newAutoContext();
     //moving shade
     public void moveShade(Long id1, Integer value) {
+
 
         ShadeEntity shadeEntity = shadeRepository.findById(id1)
                 .orElseThrow(() -> new ResourceNotFoundException(""));
@@ -32,14 +33,14 @@ public class ShadeService {
 
         if (changedValueToMilisecons > shadeEntity.getStatus()) {
             int finalValue = changedValueToMilisecons - shadeEntity.getStatus();
-            var moveShade = DigitalOutput.newConfigBuilder(pi4j())
+            var moveShade = DigitalOutput.newConfigBuilder(pi4j)
                     .id(shadeEntity.getId())
                     .name(shadeEntity.getName())
                     .address(shadeEntity.getAddressClose())
                     .shutdown(DigitalState.HIGH)
                     .initial(DigitalState.HIGH)
                     .provider(shadeEntity.getProvider());
-            var move = pi4j().create(moveShade);
+            var move = pi4j.create(moveShade);
             System.out.println(finalValue);
             move.pulseLow(finalValue, TimeUnit.SECONDS);
             shadeEntity.setStatus(changedValueToMilisecons);
@@ -51,14 +52,14 @@ public class ShadeService {
             int finalValue = shadeEntity.getStatus() - changedValueToMilisecons;
 
 
-            var moveShade = DigitalOutput.newConfigBuilder(pi4j())
+            var moveShade = DigitalOutput.newConfigBuilder(pi4j)
                     .id(shadeEntity.getId())
                     .name(shadeEntity.getName())
                     .address(shadeEntity.getAddressOpen())
                     .shutdown(DigitalState.HIGH)
                     .initial(DigitalState.HIGH)
                     .provider(shadeEntity.getProvider());
-            var move = pi4j().create(moveShade);
+            var move = pi4j.create(moveShade);
             System.out.println(finalValue);
             move.pulseLow(finalValue, TimeUnit.SECONDS);
             shadeEntity.setStatus(changedValueToMilisecons);
@@ -108,9 +109,8 @@ public class ShadeService {
 //            }
 //        }
 //    }
-    public static Context pi4j() {
-        var pi4j = Pi4J.newAutoContext();
-        return pi4j;
-    }
+
+
+
 }
 
