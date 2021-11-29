@@ -2,7 +2,6 @@ package com.example.myprojectraspi.service;
 
 
 import Exceptions.domain.*;
-import com.example.myprojectraspi.Controller.UserPrincipal;
 import com.example.myprojectraspi.enumeration.Role;
 import com.example.myprojectraspi.model.User;
 import com.example.myprojectraspi.repository.UserRepository;

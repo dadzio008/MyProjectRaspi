@@ -1,4 +1,4 @@
-package com.example.myprojectraspi.Controller;
+package com.example.myprojectraspi.service;
 
 import com.example.myprojectraspi.model.User;
 import org.springframework.security.core.GrantedAuthority;
