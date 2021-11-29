@@ -1,6 +1,6 @@
 package com.example.myprojectraspi.filter;
 
-import com.supportportal.utility.JWTTokenProvider;
+import com.example.myprojectraspi.utility.JWTTokenProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
-import static com.supportportal.constant.SecurityConstant.*;
+import static com.example.myprojectraspi.constant.SecurityConstant.*;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpStatus.OK;
 

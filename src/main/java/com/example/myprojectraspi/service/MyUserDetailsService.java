@@ -6,7 +6,6 @@ import com.example.myprojectraspi.Controller.UserPrincipal;
 import com.example.myprojectraspi.enumeration.Role;
 import com.example.myprojectraspi.model.User;
 import com.example.myprojectraspi.repository.UserRepository;
-import com.liferay.portal.service.UserService;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.util.http.fileupload.FileUtils;

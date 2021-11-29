@@ -11,7 +11,7 @@ import javax.mail.internet.MimeMessage;
 import java.util.Date;
 import java.util.Properties;
 
-import static com.supportportal.constant.EmailConstant.*;
+import static com.example.myprojectraspi.constant.EmailConstant.*;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
 

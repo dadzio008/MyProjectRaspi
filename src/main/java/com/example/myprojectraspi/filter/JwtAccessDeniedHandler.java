@@ -1,18 +1,18 @@
 package com.example.myprojectraspi.filter;
 
+import com.example.myprojectraspi.Controller.HttpResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.supportportal.domain.HttpResponse;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
+
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.http.HttpResponse;
 
-import static com.supportportal.constant.SecurityConstant.ACCESS_DENIED_MESSAGE;
+import static com.example.myprojectraspi.constant.SecurityConstant.ACCESS_DENIED_MESSAGE;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
